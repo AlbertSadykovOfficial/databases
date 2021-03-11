@@ -1,0 +1,61 @@
+Создание рабочей среды
+	
+	 Ресурсы:
+	 		Установка:
+					https://www.postgresql.org/download
+					https://www.postgrespro.ru/product/postgrespro/download/latest
+			Запуск:
+					https://www.postgrespro.ru/docs/postgresql/current/server-start.html
+			Скачиваем тестовую БД:
+					https://edu.postgrespro.ru/demo_small.zip
+
+			Развертываем ее, поместив извлеенный файл sql в папку bin программы:
+
+					Все записи при работе в консоль:
+							psql -f demo_small.sql -U postgres
+
+					Все записи при работе в один файл (указываем, что сообщения об ошибках выводятся в 1й файл (2>&1)):
+							psql -f demo_small.sql -U postgres > demo.log 2>&1
+
+					Все записи при работе в разные файлы:
+							psql -f demo_small.sql -U postgres > demo.log 2>demo.err
+
+					Выполнение команды в фновом режиме (при больших файлах) - в конце символ &:
+					+ Наблюдаем за ходом процесса командой tail:
+							psql -f demo_small.sql -U postgres > demo.log 2>&1 &
+							tail -f demo.log
+
+					
+
+	Терминал psql
+
+		Получить доступ:
+				psql
+
+		
+		Корректное отображение букв русского алфавита:
+
+				Изменить кодировку:
+						chcp 1251
+
+		Внутри БД:
+				Справка по сервисам:
+						\?
+
+
+				Все SQL-команды
+						\h
+
+
+				Описание конкретной команды:
+						\h CREATE TABLE
+
+
+				Спсисок всех таблиц и представлений:
+						\dt
+
+
+				Структура таблицы:
+						\d students
+
+

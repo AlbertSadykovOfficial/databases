@@ -1,0 +1,12 @@
+
+		Логический тип
+
+
+				В PostgreSQL представления трехзнчная логика:
+						Истина: TRUE, 't', 'true', 'y', 'yes', 'on', '1'
+						Ложь: 	FALSE, 'f', 'false', 'n', 'no', 'off', '0'
+						Неопределенное значение: NULL
+
+				Пример:
+
+						SELECT * FROM databases WHERE is_open_source;
