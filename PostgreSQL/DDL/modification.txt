@@ -1,0 +1,125 @@
+
+
+		Модификация таблиц
+
+				В том случае, когда таблица уже создана и в ней находятся данные,
+				то пересоздавать таблицу будет нецелесообразно из-за потери данных,
+				в таком случае существует команда:
+
+						ALTER TABLE <таблица> <ДЕЙСТВИЕ> <значения>
+
+				Для отмены ограничений или удаления можно применять команду:
+
+						ALTER TABLE <таблица> <DROP> <значения>
+
+						Пример:
+								ALTER TABLE aircrafts DROP COLUMN speed;
+								ALTER TABLE aircrafts ALTER COLUMN speed DROP NOT NULL;
+								ALTER TABLE aircrafts DROP CONSTRAINT aircrafts_speed_check;
+
+
+				НО! При внесение различных изменений можно столкнуться с радом трудностей,
+				свяазанных с предыдущими ограничениями, либо с установкой текущих огрнаичений:
+
+						К примеру, самолету в описании решили добавить его крейсерску скорость,
+						тогда мы можем сделать это следующим образом:
+
+						ALTER TABLE airports ADD COLUMN speed integet NOT NULL CHECK(speed >= 300)
+
+						НО будет ошибка, так как столбец создается с ограничением на NOT NULL и 
+						минимальную скорость в 300, то при выполнении команды все уже существующие
+						строки получат новую ячейку в которую поместится значение NULL, 
+						что недопустимо. 
+
+
+				Решением проблемы будет сначала создание столбца, потом добавление значений в
+				ячейки уже существующих строк, а потом уже установка ограничения:
+
+						ALTER TABLE aircrafts ADD COLUMN speed integer;
+
+						UPDATE aircraft SET speed = 802 WHERE aircraft_code = '733';
+						UPDATE aircraft SET speed = 802 
+							WHERE aircraft_code IN ('319', '320', '321');	
+							... # Тут еще всякие UPDATE
+
+						SELECT * FROM aircrafts;
+						ALTER TABLE aircrafts ALTER COLUMN speed SET NOT NULL;
+						ALTER TABLE aircrafts ADD CHECK(speed >= 300);
+
+
+
+		Изменение типа данных:
+
+				Допустим, нужно изменить тип данных в координатах с float на numeric(5,2):
+
+						SELECT * FROM airports;
+
+						ALTER TABLE airports
+								ALTER COLUMN longitude SET DATA TYPE numeric(5,2),
+								ALTER COLUMN latitude  SET DATA TYPE numeric(5,2);
+
+				
+				При условии, что типы данных относятся к одной группе (числовые), то проблем нет,
+				но может возникнуть проблемы в другом случае.
+				Допустим, в данный момент времени Классы обслуживания в таблице seats имеют 
+				текстовые обозначения (Economy, Business, Comfort), а нам надо перевести их 
+				в числовые -> (1, 2, 3) и создать новую таблицу, которая будет хранить соответсвия:
+
+						1 - Economy
+						2 - Business
+						3 - Comfort
+
+
+				Выполним задачу:
+
+						Создадим таблицу:
+
+								CREATE TABLE fare_conditions
+								(
+										fare_conditions_code integer,
+										fare_conditions_name varchar ( 10 ) NOT NULL,
+										PRIMARY KEY ( fare_conditions_code )
+								);
+
+						Предусмотрим, что имена fare_conditions_name должны быть уникальными:
+
+								ALTER TABLE fare_conditions ADD UNIQUE ( fare_conditions_name );
+
+						Добавим в таблицу значения о классах обслуживания:
+
+								INSERT INTO fare_conditions
+										VALUES ( 1 , 'Economy' ),
+													 ( 2 , 'Business' ),
+													 ( 3 , 'Comfort' );
+
+						Модифицируем таблицу seats:
+
+								Учтем, что в атблицу стояло ограничение CHECK на то, чтобы
+								значения соответствовали спец значениям из списка.
+								Чтобы успешно заменить данные нужно сначала удалить это ограничение.
+
+								ALTER TABLE seats
+										DROP CONSTRAINT seats_fare_conditions_check,
+										ALTER COLUMN fare_conditions SET DATA TYPE integer
+										USING( CASE WHEN fare_conditions = 'Economy' THEN 1
+																WHEN fare_conditions = 'Business' THEN 2
+																ELSE 3
+														END);
+
+						Далее связываем таблицы "Места" и "Классы обсулживания":
+
+								ALTER TABLE seats
+									ADD FOREIGN KEY ( fare_conditions )
+											REFERENCES fare_conditions ( fare_conditions_code );
+
+		Переименование:
+
+				Так как мы изменили Названия классов на числа в таблице seats,
+				то следует изменить и название столбика.
+				При этом, при создании таблицы seats автоматически было создано
+				имя ограничения (имя-таблицы_имя-первого-внешнего-ключа), его
+				тоже следует переименовать.
+
+				ALTER TABLE seats RENAME COLUMN fare_conditions TO fare_conditions_code;
+				ALTER TABLE seats RENAME 
+						CONSTRAINT seats_fare_conditions_fkey TO seats_fare_conditions_code_fkey;

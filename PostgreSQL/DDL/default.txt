@@ -1,0 +1,116 @@
+		
+		Значния по умолчанию и ограничения целостности
+
+
+				Работать будем с 2 таблицами:
+						Студенты (students) - (№ зачетной книжки, ИМЯ, серия документа, номер документа)
+						Успеваемость (progress) - (№ зачетной книжки, Предмет, Учебный год, семестр, Оценка)
+
+						Таблица Успеваемость будет сслыаться на таблицу Студенты по ключу (№ зачетной книжки)
+
+				
+++++		Ограничения:
+
+						DEFAULT - значения по умолчанию
+						CHECK - Условия
+						NOT NULL - Значение должно быть отлично от ничего
+						UNIQUE - Уникальное значение
+						CONSTRAINT - Заать имя ограничению, чтобы при ошибке SQL распознать, где возникла проблема
+
+
+						Пример:
+
+								CREATE TABLE progress
+								(
+										record_book numeric ( 5 ) UNIQUE,
+										mark numeric( 1 ) DEFAULT 5,
+										term numeric( 1 ) CHECK (term = 1 OR term = 2)
+										doc_ser numeric( 4 ),
+										doc_num numeric( 6 ),
+
+										CONSTRAINT valid_mark CHECK (mark >= 3 AND mark <= 5),
+										CONSTRAINT unique_record_book UNIQUE ( record_book ),
+										CONSTRAINT unique_passport( doc_ser, doc_num )
+								);
+
+
+++++		Первичный ключ
+
+						Первичный ключ - уникальный идетификатор строк в таблице,
+														 является частью метаданных, удобен для создания внешних ключей.
+														 Может состоять как из 1 атрибута, так и из нескольких.
+
+														 Первичный ключ не может иметь значение (NULL) и он только 1 на таблицу,
+														 в отличие от UNIQUE.
+
+						Пример:
+
+								CREATE TABLE progress
+								(
+										record_book numeric ( 5 ) PRIMARY KEY,
+											...
+										PRIMARY KEY ( record_book , param2, param3, ... )
+								)
+
+
+++++		Внешний ключ
+
+						Внешнй ключ - атрибут, который связывает данную таблицу с другой таблицей.
+													Ограничению внешего ключа также может быть присвоено наименование
+													через слово CONSTRAINT
+
+						Названия таблиц в таком случае:
+								Студенты - ссылочная
+								Успеваемость - ссылающаяся
+
+
+						Пример:
+
+								CREATE TABLE progress
+								(
+										record_book numeric ( 5 ) REFERENCES students ( record_book ),
+											...
+										record_book numeric ( 5 ) REFERENCES students,
+										...
+										FOREIGN KEY ( record_book ) REFERENCES students ( record_book )
+								)
+
+
+						При наличии связей между таблицами, организованных с помощью внешних ключей,
+						необходим предерживаться неоторых правил при удалении и обновлении в main табл.
+
+								Характерно для:
+
+										Обновления ( ON UPDATE )
+										Удаления ( ON DELETE )
+
+								Ситуации (на примере Удаления):
+
+										1) CASCADE - Удаление связных строк
+
+													При удалении студента удаляются все его достижения из (progress)
+													
+													CREATE TABLE progress
+													(
+															record_book numeric ( 5 ),
+															...
+															FOREIGN KEY ( record_book ) REFERENCES students (record_book) ON DELETE CASCADE
+													);
+
+										2) RESTRICT - Запрет на удаление, если есть связные данные в других таблицах
+
+													В таком случае будет выведено сообщение об ошибке
+															
+															FOREIGN KEY ( record_book ) REFERENCES students (record_book) ON DELETE RESTRICT
+
+
+										3) NULL - присвоение атрибутам внешнего ключа в таблице Успеваемость значение NULL
+
+													При этом на внешнем ключе не должно быть ограничение NOT NULL
+
+															FOREIGN KEY ( record_book ) REFERENCES students (record_book) ON DELETE SET NULL
+
+										4) DEFAULT - установка значенйи по умолчанию, если оно было предписано при созданнии таблицы
+
+
+															FOREIGN KEY ( record_book ) REFERENCES students (record_book) ON DELETE SET DEFAULT
