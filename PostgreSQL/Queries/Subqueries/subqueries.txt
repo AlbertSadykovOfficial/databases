@@ -1,0 +1,87 @@
+
+
+		Подзапросы (запрос в запросе)
+					
+				Скалярный подзапрос - подзапрос, возвращающий 1 значение (один столбец, одна строка).
+															С ним можно сравнивать другие скалярне значения.
+
+						Пример:
+						SELECT count ( * ) FROM bookings WHERE total_amount > ( SELECT avg( total_amount ) FROM bookings );
+
+				Предикате IN - подзапрос, возвращающий множество значений
+
+						SELECT flight_no, departure_city, arrival_city
+							FROM routes
+						 WHERE departure_city IN (
+						 				SELECT city
+						 					FROM airports
+						 				 WHERE timezone ~ 'Krasnoyarsk'
+						 			 )
+						 			 AND arrival_city IN (
+						 			 	SELECT city
+						 			 		FROM airports
+						 			 	 WHERE timezone ~ 'Krasnoyarsk'
+						 			 );
+
+
+				Предикат EXISTS - проверка наличия строк в таблице
+
+						Рекомендуется в подзапросе EXISTS использовать (1) после SELECT,
+						чтобы увеличить производительность, не выбирая все значения. 
+
+						... WHERE NOT EXISTS (SELECT 1 FROM routes r...)
+
+
+				Позапрос в предложении SELECT:
+
+						(subquery) AS <name> - именнованный подзапрос
+
+						В подзапросе мы так же ссылаемся на данные запроса:
+						(a.aircraft_code) - такой подзапрос также называется:
+							Связным или коррелированным.
+						В теории такой подзапрос выполняется не 1 раз для всего запроса,
+						а для каждой строки, обрабатываемой во внешнем запросе.
+						Оптимизацией таких невыгодных решений занимается планировщик.
+						
+						SELECT a.model,
+						  		(
+						 				SELECT city
+						 					FROM airports
+						 				 WHERE timezone ~ 'Krasnoyarsk'
+						 			 ) AS bussines,
+						 			 (
+						 			 	SELECT count ( * )
+						 			 		FROM seats s
+						 			 	 WHERE a.aircraft_code = a.aircraft_code
+						 			 )
+						 	FROM aircrafts a
+						 	ORDER BY 1;
+
+				Позапрос в предложении FROM:
+
+						(Пример: получить перечень городов, в которых больше 1 аэропорта)
+						HAVEING - выюирает города в которых более 1го аэропорта.
+
+						SELECT aa.city, aa.airport_code, aa.airport_name
+							FROM (
+								SELECT city, count ( * )
+									FROM airports
+									GROUP BY city
+									HAVING count( * ) > 1
+							) AS a
+							JOIN airports AS aa ON a.city = aa.city
+							ORDER BY aa.city, aa.airport_name;
+				
+				Позапрос в предложении HAVING:
+
+						(Пример: кол-во маршрутов, исходящих из аэропортов, расположенны восточнее долготы 150)
+
+						SELECT departure_airport, departure_city, count ( * )
+							FROM routes
+							GROUP BY departure_airport, departure_city
+							HAVING departure_airport IN (
+									SELECT airport_code
+										FROM airports
+									 WHERE longitude > 150
+							)
+							ORDER BY count DESC;

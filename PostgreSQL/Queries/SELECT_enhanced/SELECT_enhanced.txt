@@ -1,0 +1,41 @@
+
+
+--- DISTINCT (Вывод неповторяющихся значений)
+
+		SELECT DISTINCT timezone FROM airports ORDER BY 1;
+
+--- LIMIT и OFFSET
+
+	SELECT ... LIMIT 3 OFFSET 6; --- Вывести 3 значения, начиная с 6 
+
+--- Вычисляеые столбцы
+
+	SELECT model, range, range/1.609 AS miles FROM aircrafts; --- Вывести дальность в милях и изменить название выводаю
+	SELECT model, range, round(range/1.609, 2) AS miles FROM aircrafts; --- Вывести дальность в милях с  очностью до 2х знаков
+
+---- LIKE
+	word% - Что-нибудь следует После
+	%word - Что-нибудь было ДО
+	%word% - Что-нибудь ДО и ПОСЛЕ
+
+	SELECT * FROM aircrafts WHERE model LIKE 'Airbus%';   --- Назчинается с Airbus
+	SELECT * FROM airports WHERE airport_name LIKE '___'; --- Любые 3 символа 
+
+--- POSIX (Регулярные выражения)
+
+	SELECT * FROM aircrafts WHERE model  ~ '^(A|Boe)';--- Начинается с A или Boe
+	SELECT * FROM aircrafts WHERE model !~ '300$';--- Не заканчивается на 300
+
+--- BETWEEN (предикат сравнения)
+	
+	SELECT * FROM aircrafts WHERE range BETWEEN 3000 AND 6000; --- Кто имеет дальность полета в пределах установленных
+
+--- CASE 
+
+	SELECT model, range, 
+		CASE WHEN range < 2000 THEN 'Близко'
+				 WHEN range < 5000 THEN 'Средне'
+				 ELSE 'Далеко'
+		END AS type
+		FROM aircrafts
+		ORDER BY model;

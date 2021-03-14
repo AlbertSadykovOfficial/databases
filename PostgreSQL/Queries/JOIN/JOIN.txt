@@ -1,0 +1,96 @@
+
+
+		Соединения
+
+				Иногда тебуется выбрать данные из нескольких таблицЮ для этого используют соединения.
+
+				Резульаттом любых реляционных операций над отношениями - также является отношение
+
+				Пример (выбрать все места, предусмотренные компановкой самолета):
+
+				    ----JOIN...ON-----
+						Если нужно указать столбец, по которому следует объединить две таблицы, 
+						используется конструкция JOIN...ON
+						(При этом можно выводить не все столбцы (к примеру, можно убрать a.model ...))
+
+						SELECT a.aircraft_code, a.model,
+									 s.seat_no, s.fare_conditions
+							FROM seats AS s
+							JOIN aircrafts AS a
+								ON s.aircraft_code = a.aircraft_code
+						 WHERE a.model ~ '^Cessna'
+						 ORDER BY s.seat_no;
+
+
+						Альтернатива без JOIN:
+								SELECT a.aircraft_code, a.model,
+											 s.seat_no, s.fare_conditions
+									FROM seats s, aircrafts a
+								 WHERE s.aircraft_code = a.aircraft_code
+								   AND a.model ~ '^Cessna'
+								 ORDER BY s.seat_no;
+
+
+		Соединение таблиц самих с собой:
+
+				В соединениях одна таблица может участвовать дважды - формировать соединение сама с собой.
+				СУБД содиняет каждую строку первой таблицы со строкой второй - декартово произведение таблиц-
+				все попарные комбиации строк из 2х таблиц. 
+				Затем СУБД отбрасывает те строки, которые не удовлетворяют условию 
+
+						(Пример: )
+								--- Перечисление имен таблиц предложений FROM.
+								SELECT count( * )
+									FROM airports a1, airports a2
+								 WHERE a1.city <> a2.city;
+
+								--- Соединение таблиц на основе неравенства двух значений
+								SELECT count( * )
+									FROM airports a1
+									JOIN airports a2 ON a1.city <> a2.city;
+								
+								--- Явное использование декартова произведения таблиц
+								SELECT count( * )
+									FROM airports a1 CROSS JOIN airports a2
+								 WHERE a1.city <> a2.city;
+						
+						(Пример: ФАЙЛ flights_v.sql)
+								
+								В запросе используются 2 таблицы (flights и airports).
+								Стоит учитывать, что
+												 --- dep и arr
+												 --- Нужны для того, чтобы отдельно получить аэропорты вылета и прилета
+												 --- Иначе при выполнении AND он будет принимать вылет и прилет в 1 город.
+												 --- При разделении на 2 запроса поиск будет производиться дважды:
+												 --- Для Аэропорта отправления и прибытия
+										FROM flights f,
+												 airports dep,
+												 airports arr
+									 WHERE f.departure_airport = dep.airport_code
+									 	 AND f.arrival_airport = arr.airport_code
+
+
+		Внешние соединения
+
+				Обычное- Если удовлетворяет условию - выводим, нет - нет.
+				Левое  - Смотрит есть ли удовлетворяющие условию значения в правой таблице относительно левой,
+								 если их нет, то она их печатает, но в выводимое поле помещает NULL.
+				Правое - как левое, только смотрят относительно правой таблицы (лчше их просто местами поменять)
+				Полное - Комбинирует оба варианта.
+
+						( Пример: Обычное ):
+								SELECT r.aircraft_code, a.model, count( * ) AS num_routes
+								  FROM routes r
+								  JOIN aircrafts a ON r.aircraft_code = a.aircraft_code
+								  GROUP BY 1, 2
+								  ORDER BY 3 DESC;
+
+						( Пример: Левое )
+								SELECT a.aircraft_code AS a_code,
+											 a.model,
+											 r.aircraft_code,
+											 count( * ) AS num_routes
+								  FROM aircrafts a
+								  LEFT OUTER JOIN routes r ON r.aircraft_code = a.aircraft_code
+								  GROUP BY 1, 2, 3
+								  ORDER BY 4 DESC;

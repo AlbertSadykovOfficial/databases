@@ -1,0 +1,85 @@
+
+
+		Оконные функции
+
+				(Документация - Раздел 3.5)
+
+				Оконные фукнции позволяют производить вычисления на множестве строк, 
+				логически связанных с текущей строкой ( имеющих отношения к ней ).
+
+				Если в запросе присутствует ORDER BY и HAVING, то оконные функции будут
+				вызываться после них.
+
+				Основные понятия:
+
+						Раздел (partition) - все строки выборки, имеющие одинаковые свойства (более общие).
+																 Для определения границ раздела служит PARTITION BY.
+																 (Пример: кол-во проданных билетов по дням за МЕСЯЦЫ. - Месяц - раздел)
+						Оконный кадр (window frame) - 
+								Для сортированного раздела:
+										Строки, начиная с первой, заканчивая текущей. Или если значение критерия
+										сортировки последующих такое же как и у текущей строки, то и их тоже
+										Для определния границ кадра используется - ORDER BY. 
+										(Пример: кол-во проданных билетов ПО ДНЯМ за месяцы. - ДНИ - оконный кадр).
+
+								Для несортированного раздела:
+										Множество всех строк раздела (по умолчанию).
+
+						(Пример: кол-во проданных билетов ПО ДНЯМ за МЕСЯЦЫ):
+
+								SELECT b.book_ref,
+											 b.book_date,
+											 extract( 'month' from b.book_date ) AS month,
+											 extract( 'day' 	from b.book_date ) AS day,
+											 count( * ) OVER (
+											 		PARTITION BY date_trunc( 'month', b.book_date )
+											 		ORDER BY b.book_date
+											 ) AS count
+									FROM ticket_flights tf
+									JOIN tickets t ON tf.ticket_no = t.ticket_no
+									JOIN bookings b ON t.book_ref = b.book_ref
+								 WHERE tf.flight_id = 1
+								 ORDER BY b.book_date;
+
+
+								Разбор конструкции:
+
+											PARTITION BY - разбиение строк на разделы 
+
+											count( * ) OVER (
+											 		PARTITION BY date_trunc( 'month', b.book_date )
+											 		ORDER BY b.book_date
+											 ) AS count
+
+
+						(Пример: проранжировать аэропорты  в пределах каждого часового пояса на основе их геог. широты):
+								
+								PARTITION BY timezone - строки относятся к одному и тому же разделу 
+																				на основе совпадения значения в столбце timezone.
+								OVER - порядок сортировки.
+								
+
+								SELECT airport_name,
+											 city,
+											 round( latitude::numeric, 2) AS ltd,
+											 timezone,
+											 rank() OVER (
+											 			PARTITION BY timezone
+											 			ORDER BY latitude DESC
+											 )
+									FROM airports
+								 WHERE timezone IN ( 'Asia/Irkutsk', 'Asia/Krasnoyarsk' )
+								 ORDER BY timezone, rank;
+
+
+						(Пример: для каждого аэропорта вычислять разницу между его широтой 
+										 и широтой самого северного аэропорта в его часововм поясе)
+
+								SELECT airport_name, city, timezone, latitude,
+											 first_value( latitude )						OVER tz AS first_in_timezone,
+											 latitude - first_value( latitude ) OVER tz AS delta,
+											 rank()														  OVER tz
+									FROM airports
+								 WHERE timezone IN ('Asia/Irkutsk', 'Asia/Krasnoyarsk' )
+								WINDOW tz AS ( PARTITION BY timezone ORDER BY latitude DESC)
+								 ORDER BY timezone, rank;

@@ -1,0 +1,12 @@
+
+
+		Агрегатные фукции - функции, позволяющие находить значение.
+
+				Среднее значение:
+
+						SELECT avg( total_amount ) FROM bookings;
+
+				Максимальное и минимальное значение:
+
+						SELECT max( total_amount ) FROM bookings;
+						SELECT min( total_amount ) FROM bookings;

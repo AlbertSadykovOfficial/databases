@@ -1,0 +1,46 @@
+
+
+		В команде SELECT пердусмотрены средства для выполнения операций с выборками, как с множествами:
+
+				UNION (||) - вычисление объединения множеств из 2х выборок
+				INTERSECT (&) - вычисление пересечения множеств из 2х выборок 
+				EXCEPT (Не &) -  вычисление разности множеств из 2х выборок
+
+
+				При этом INTERSECT имеет приоритет над UNION и EXCEPT,
+				в свою очередь UNION и EXCEPT равносильны 
+
+				UNION
+
+						(Пример: в какие города можно улететь либо из Москвы, лиюо из СПб)
+
+						SELECT arrival_city FROM routes
+						 WHERE departure_city = 'Москва'
+						UNION
+						SELECT arrival_city FROM routes
+						 WHERE departure_city = 'Санкт-Петербург'
+						ORDER BY arrival_city;
+
+
+				INTERSECT
+
+						(Пример: в какие города можно улететь КАК из Москвы, ТАК И из СПб)
+
+						SELECT arrival_city FROM routes
+						 WHERE departure_city = 'Москва'
+						INTERSECT
+						SELECT arrival_city FROM routes
+						 WHERE departure_city = 'Санкт-Петербург'
+						ORDER BY arrival_city;
+
+
+				EXCEPT
+
+						(Пример: в какие города можно улететь из СПб, но нельзя из Москвы)
+
+						SELECT arrival_city FROM routes
+						 WHERE departure_city = 'Санкт-Петербург'
+						EXCEPT
+						SELECT arrival_city FROM routes
+						 WHERE departure_city = 'Москва'
+						ORDER BY arrival_city;
