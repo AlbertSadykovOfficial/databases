@@ -1,0 +1,46 @@
+
+
+		Удаление строк из таблиц
+
+					Простые способы:
+
+							DELETE FROM aircrafts_tmp;
+							TRUNCATE aircrafts_tmp; - более быстрая функция
+
+					(Пример: запись выполненных операций в жернальную таблицу)
+
+								WITH delete_row AS
+								(
+										DELETE FROM aircrafts_tmp,
+													WHERE model ~ '^Bom'
+										RETURNING *
+								)
+								INSERT INTO aircrafts_log
+									SELECT dr.aircraft_code, dr.model, dr.range, 
+												 current_timestamp, 'INSERT'
+									FROM delete_row dr;
+
+					Посмотреть историю изменений строки с описние самолета Bombardier CRJ-200:
+
+							SELECT * FROM aircrafts_log
+								WHERE mode ~ '^Bom' ORDER BY when_add;
+
+					(Пример: Удалить из авиапарка все самолеты компании Airbus и Boeing, имеющие наименьшую дальность полета)
+
+								Оконная фукция rank() - производит ранжирование моделей каждой компании по возрастанию дальности полета.
+
+								WITH min_ranges AS
+								(
+										SELECT aircraft_code,
+												rank () OVER (
+														PARTITION BY left( model, 6 )
+														ORDER BY range
+												) AS rank
+											FROM aircrafts_tmp
+										 WHERE model ~ '^Airbus' OR model ~ '^Boeing'
+								)
+								DELETE FROM aircrafts_tmp a
+											USING min_ranges mr
+											WHERE a.aircraft_code = mr.aircraft_code
+												AND mr.rank = 1
+									RETURNING *;

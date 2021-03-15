@@ -1,0 +1,42 @@
+
+
+		Вставка строк в таблицы
+
+				Создать таблицу наподобие сущесвующией.
+		
+						Стоит учитывать, что при копировании таблицы 
+						ограничения не переносятся, их нужно создавть вновь. 
+						WITH NO DATA - не копировать данные этой таблицы
+
+								CREATE TEMP TABLE aircrafts_tmp AS
+										SELECT * FROM aircrafts WITH NO DATA;
+
+								или:
+
+								CREATE TEMP TABLE aircrafts_tmp
+										( LIKE aircrafts INCLUDING CONSTRAINTS INCLUDING INDEXES );
+
+
+				Скопировать данные из одной таблицы в другую
+
+						(Пример: скопировать в таблицу aircrafts_tmp все данные из aircrafts,
+										 + создать журнал изменений)
+
+						RETURNING * - вернуть внешнему запросу (add_row) все строки, 
+													добавленные в aircrafts_tmp из aircrafts.
+
+						Псоскольку в aircrafts_log существует еще 2 столбца, то для них мы
+						дополнительно передаем занчения current_timestamp и 'INSERT'.
+
+								WITH add_row AS
+								(
+										INSERT INTO aircrafts_tmp,
+										SELECT * FROM aircrafts
+										RETURNING *
+								)
+								INSERT INTO aircrafts_log
+									SELECT add_row.aircraft_code, add_row.model, add_row.range, current_timestamp, 'INSERT'
+									FROM add_row;
+
+
+

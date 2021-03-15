@@ -1,0 +1,113 @@
+
+
+		Обновление строк в таблицах
+
+
+				(Пример: запись операций в журнальную таблицу)
+
+						WITH update_row AS
+						(
+								UPDATE aircrafts_tmp
+									 SET range = range * 1.2
+								 WHERE model ~ '^Bom'
+								RETURNING *
+						)
+						INSERT INTO aircrafts_log
+							SELECT ur.aircraft_code, ur.model, ur.range, 
+										 current_timestamp, 'INSERT'
+							FROM update_row ur;
+
+
+					Посмотреть историю изменений строки с описние самолета Bombardier CRJ-200:
+
+							SELECT * FROM aircrafts_log
+								WHERE mode ~ '^Bom' ORDER BY when_add;
+
+
+					(Пример: руководство очет видет ьдинамику продаж билетов по всем направлениям:
+									 общее число проданных билетов и дату/время посдеднего увеличения их числа
+									 для конкретного направления)
+
+							Создадим времнную таблицу tickets_directions со столбцами
+									departure_city
+									arrival_city
+									last_ticket_time
+									ticket_num
+
+							Создавать будем через представление "Маршруты"
+
+									DISTINCT - обязательно, ведь нужны уникальные маршурты
+
+									CREATE TEMP TABLE tickets_drections AS
+											SELECT DISTINCT departure_city, arrival_city FROM routes;
+
+									Доабавим еще 2 столбца и заполним столбец-счетчик 0:
+
+											ALTER TABLE tickets_directions
+													ADD COLUMN last_ticket_time timestamp;
+											ALTER TABLE tickets_directions
+													ADD COLUMN ticket_num integer DEFAULT 0;
+
+							Создадим аналог таблицы "Перелеты" без внешних ключей, 
+							но добавим первыичный ключ для демонстрации, что при попытке
+							ввода строк с дубликатными значениям первичного ключа значения
+							счетчикаов в талице tickets_directions наращиваться е будут.
+
+									CREATE TEMP TABLE ticket_flights_tmp AS
+									  SELECT * FROM ticket_flights WITH NO DATA;
+									ALTER TABLE ticket_flights_tmp
+									  ADD PRIMARY KEY ( ticket_no, flight_id );
+
+
+							(1) Команда для добавления запись о прадаже билета и увеличения свчетчика
+							в tickets_directions
+
+									Общее табличное выражение ( WITH AS ) - добавление новой записи о бронировании.
+									Главный запрос - наращивание счетчика.
+
+									Если строка не будет добавлена из-за дублирования ключа, будет сгенерирована ошибка,
+									запрос выполнен не будет, таблица не будет обновлена.
+
+									WITH sell_ticket AS
+									(
+											INSERT INTO ticket_flights_tmp
+											( ticket_no, flight_id, fare_conditions, amount )
+											VALUES ( '1234567890123', 30829, 'Economy', 12800 )
+											RETURNING *
+									)
+									UPDATE tickets_directions td
+										 SET last_ticket_time = current_timestamp,
+										 		 ticket_num =  ticket_num + 1
+									 WHERE (td.departure_city, td.arrival_city ) =
+									 				(
+									 						SELECT departure_city, arrival_city
+									 							FROM flights_v
+									 						 WHERE flight_id = ( SELECT flight_id FROM sell_ticket )
+									 				);
+
+
+									Посмтореть результат:
+
+											SELECT * FROM tickets_directions WHERE tickets_num > 0;
+
+
+							(2) Команда для добавления запись о прадаже билета и увеличения свчетчика
+							в tickets_directions через операцию соединения таблиц.
+
+									Чтобы увидеть комбиированную стрку,
+									следует включить в команду UPDATE предложение RETURNING
+									
+									WITH sell_ticket AS
+									(
+											INSERT INTO ticket_flights_tmp
+											( ticket_no, flight_id, fare_conditions, amount )
+											VALUES ( '1234567890123', 30829, 'Economy', 12800 )
+											RETURNING *
+									)
+									UPDATE tickets_directions td
+										 SET last_ticket_time = current_timestamp,
+										 		 ticket_num =  ticket_num + 1
+										FROM flights_v f
+									 WHERE td.departure_city = f.departure_city
+									 	 AND td.arrival_city = f.arrival_city
+									 	 AND f.flight_id = ( SELECT flight_id FROM sell_ticket );
