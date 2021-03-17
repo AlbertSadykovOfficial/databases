@@ -1,0 +1,77 @@
+
+
+		Уровень Read Committed
+
+
+				Для теста создадим копию таблицы aircrafts (если еще не создали), чтобы оттуда данные не удлялись:
+
+						CREATE TABLE aircrafts_tmp AS SELECT * FROM aircrafts;
+
+
+				Начнем транзакцию и установим уровень изоляции Read Committed НА 2х терминалах:
+
+						Терминалы №1 и №2:
+							
+						BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;
+
+				Обновим значения в таблицу и посмотрим результат:
+
+						Терминал №1
+		
+								UPDATE aircrafts_tmp
+									 SET range = range + 100
+								 WHERE aircraft_code = 'SU9';
+
+								SELECT * FROM aircrafts_tmp WHERE aircraft_code = 'SU9';
+
+								(В транзакции значение атрибута изменено, но не зафиксировано)
+
+
+						Терминал №2
+
+								UPDATE aircraft_tmp
+									 SET range = range + 200
+								 WHERE aircraft_code = 'SU9';
+
+								 (Команда не завершится, а уйдет в ожидание до тех пор, пока не завершится 1я команда)
+
+
+						Терминал №1
+
+								COMMIT;
+
+						Терминал №2 (Посмотрим результат и завершим транзакцию альтернативой COMMIT -> END)
+
+								SELECT * FROM aircrafts_tmp WHERE aircraft_code = 'SU9';
+								END; 
+
+
+
+
+				Демонстрация неповторяющегося чтения данных
+
+						Если одна из 2х транзакция завершистя в момент между 2мя запросами,
+						то значения в таблице при  повторной выборке изменится
+						то мы увидем эфферкт неповторяющегося чтения данных.
+
+
+						Терминал №1:
+
+								BEGIN;
+								SELECT * FROM aircraft_tmp;
+
+								(Полная таблица (ссылка #1))
+
+						Терминал №2:
+
+								BEGIN;
+								DELETE FROM aircrafts_tmp WHERE model ~ '^Boe';
+								SELECT * FROM aircraft_tmp;
+								END;
+
+						Терминал №1:
+
+								SELECT * FROM aircraft_tmp;
+								END;
+
+								(Мы увидим другой резултат, относительно значений по (ссылке #1) )

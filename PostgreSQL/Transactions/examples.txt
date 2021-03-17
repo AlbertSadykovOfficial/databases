@@ -1,0 +1,62 @@
+
+
+		Пример использования тразакций
+
+				Задача: Создать бронирование и оформить 2 билета с 2мя перелетами в каждом.
+
+						1) Начинаем транзакцию с уровнем изоляции Read Committed:
+
+								BEGIN;
+
+						2) Добавим запись в таблицу Бронирования:
+
+								+ 
+								+ Установим текущую дату
+								+	Назначим поле total_amount 0
+
+								INSERT INTO bookings ( book_ref, book_date, total_amount )
+									VALUES ('ABC123', bookings.now(), 0 );
+
+						3) Оформим 2 билета на 2х разных пассажиров:
+								
+								INSERT INTO tickets ( tickets_no, book_ref, passenger_id, passenger_name )
+									VALUES ('9991234567890', 'ABC123', '1234 123456', 'IVAN IVANOVICH');
+
+								INSERT INTO tickets ( tickets_no, book_ref, passenger_id, passenger_name )
+									VALUES ('9991234567891', 'ABC123', '4321 654321', 'PETR SMIRNOV');
+
+						4) Обновим обоих пассажиров по маршруту Москва-Касноярск и обратно
+
+								INSERT INTO ticket_flights ( tickets_no, flight_id, fare_conditions , amount )
+									VALUES ('9991234567890', 5572, 'Business', 12500 ),
+									VALUES ('9991234567890', 13881, 'Economy', 8500 );
+
+								INSERT INTO ticket_flights ( tickets_no, flight_id, fare_conditions , amount )
+									VALUES ('9991234567891', 5572, 'Business', 12500 ),
+									VALUES ('9991234567891', 13881, 'Economy', 8500 );
+
+
+						5) Подсчитаем общую сумму забронированных билетов.
+
+								UPDATE bookings
+									 SET total_amount = 
+									 	 (
+									 	 		SELECT sum( amount )
+									 	 			FROM ticket_flights
+									 	 		 WHERE ticket_no 
+									 	 		 		IN (
+									 	 		 				SELECT ticket_no
+									 	 		 					FROM tickets
+									 	 		 				 WHERE book_ref = 'ABC123'
+									 	 		 		)
+									 	 )
+								 WHERE book_ref = 'ABC123';
+
+
+						6) Проверка:
+
+								SELECT * FROM bookings WHERE book_ref = 'ABC123';
+
+						7) Завершение:
+
+								COMMIT;

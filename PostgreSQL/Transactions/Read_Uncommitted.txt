@@ -1,0 +1,45 @@
+
+
+		Уровень Read Uncommitted
+
+				Проверим, видит ли транзакция те изменения данных, 
+				которые были произведенны в другой транзакции, 
+				но еще не были зафиксированы. 
+				Т.е.: Видит ли "Грязные транзакции"
+
+
+				Для теста создадим компию таблицы aircrafts, чтобы оттуда данные не удлялись:
+
+						CREATE TABLE aircrafts_tmp AS SELECT * FROM aircrafts;
+
+
+				Начнем транзакцию и установим уровень изоляции Read Uncommitted НА 2х терминалах:
+
+						Терминалы №1 и №2:
+							
+							BEGIN;
+							SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+				Обновим значения в таблицу и посмотрим результат:
+
+						Терминал №1
+		
+								UPDATE aircrafts_tmp
+									 SET range = range + 100
+								 WHERE aircraft_code = 'SU9';
+
+								SELECT * FROM aircrafts_tmp WHERE aircraft_code = 'SU9';
+
+						Терминал №2
+
+								SELECT * FROM aircrafts_tmp WHERE aircraft_code = 'SU9';
+
+								(Изменения не будут видны, так как транзакция не завершена)
+
+				
+				Отмена трнзакций:
+
+						Терминалы №1 и №2:
+
+						ROLLBACK;
+
